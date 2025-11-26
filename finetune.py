@@ -15,6 +15,7 @@ from utils.public_utils import cal_torch_model_params, setup_device, is_left_bet
 from utils.splitter import split_train_val_test_idx, split_train_val_test_idx_stratified, scaffold_split_train_val_test, \
     random_scaffold_split_train_val_test, scaffold_split_balanced_train_val_test
 
+#TODO: make this read from the bucket rather than local files
 
 def parse_args():
     parser = argparse.ArgumentParser(description='PyTorch Implementation of ImageMol')
@@ -144,7 +145,7 @@ def main(args):
     if args.resume:
         if os.path.isfile(args.resume):  # only support ResNet18 when loading resume
             print("=> loading checkpoint '{}'".format(args.resume))
-            checkpoint = torch.load(args.resume)
+            checkpoint = torch.load(args.resume, map_location=torch.device('cpu'))
             ckp_keys = list(checkpoint[args.resume_key])
             cur_keys = list(model.state_dict())
             model_sd = model.state_dict()
@@ -163,7 +164,7 @@ def main(args):
 
     print(model)
     print("params: {}".format(cal_torch_model_params(model)))
-    model = model.cuda()
+    # model = model.cuda()
     if len(device_ids) > 1:
         model = torch.nn.DataParallel(model, device_ids=device_ids)
 
