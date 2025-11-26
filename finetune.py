@@ -62,6 +62,8 @@ def main(args):
 
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 
+    # CHANGES NEED TO BE MADE HERE TO LOAD DATA FROM BUCKET
+
     args.image_folder, args.txt_file = get_datasets(args.dataset, args.dataroot, data_type="processed")
 
     device, device_ids = setup_device(args.ngpu)
