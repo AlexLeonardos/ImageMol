@@ -5,3 +5,4 @@ networkx==2.6.3
 torch-geometric==2.0.2
 pandas
 numpy
+google-cloud-storage==2.7.0
