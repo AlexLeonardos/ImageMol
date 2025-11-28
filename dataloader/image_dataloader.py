@@ -5,6 +5,7 @@ from PIL import Image
 from rdkit import Chem
 from rdkit.Chem import Draw
 from torch.utils.data import Dataset
+from google.cloud import storage
 
 
 class ImageDataset(Dataset):
@@ -59,14 +60,44 @@ def load_filenames_and_labels_multitask(image_folder, txt_file, task_type="class
     return names, labels
 
 
-def get_datasets(dataset, dataroot, data_type="raw"):
+def get_datasets(dataset, dataroot, data_type="raw", bucket_name=None):
+    """
+    Fetch datasets from a GCP bucket or local directory.
+
+    :param dataset: Name of the dataset (e.g., "bbbp").
+    :param dataroot: Local directory to store the dataset.
+    :param data_type: Type of data ("raw" or "processed").
+    :param bucket_name: Name of the GCP bucket (if using GCP).
+    :return: Tuple of image folder path and txt file path.
+    """
     assert data_type in ["raw", "processed"]
 
-    image_folder = os.path.join(dataroot, "{}/{}/224/".format(dataset, data_type))
-    txt_file = os.path.join(dataroot, "{}/{}/{}_processed_ac.csv".format(dataset, data_type, dataset))
+    image_folder = os.path.join(dataroot, f"{dataset}/{data_type}/224/")
+    txt_file = os.path.join(dataroot, f"{dataset}/{data_type}/{dataset}_processed_ac.csv")
 
-    assert os.path.isdir(image_folder), "{} is not a directory.".format(image_folder)
-    assert os.path.isfile(txt_file), "{} is not a file.".format(txt_file)
+    if bucket_name:
+        # Initialize GCP storage client
+        client = storage.Client()
+        bucket = client.bucket(bucket_name)
+
+        # Ensure local directories exist
+        os.makedirs(image_folder, exist_ok=True)
+        os.makedirs(os.path.dirname(txt_file), exist_ok=True)
+
+        # Download image folder
+        blobs = bucket.list_blobs(prefix=f"{dataset}/{data_type}/224/")
+        for blob in blobs:
+            local_path = os.path.join(dataroot, blob.name)
+            os.makedirs(os.path.dirname(local_path), exist_ok=True)
+            blob.download_to_filename(local_path)
+
+        # Download txt file
+        txt_blob = bucket.blob(f"{dataset}/{data_type}/{dataset}_processed_ac.csv")
+        txt_blob.download_to_filename(txt_file)
+
+    # Validate paths
+    assert os.path.isdir(image_folder), f"{image_folder} is not a directory."
+    assert os.path.isfile(txt_file), f"{txt_file} is not a file."
 
     return image_folder, txt_file
 

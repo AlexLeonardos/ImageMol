@@ -15,15 +15,14 @@ from utils.public_utils import cal_torch_model_params, setup_device, is_left_bet
 from utils.splitter import split_train_val_test_idx, split_train_val_test_idx_stratified, scaffold_split_train_val_test, \
     random_scaffold_split_train_val_test, scaffold_split_balanced_train_val_test
 
-#TODO: make this read from the bucket rather than local files 
-# - implemented using gcsfuse rather than code
 
 def parse_args():
     parser = argparse.ArgumentParser(description='PyTorch Implementation of ImageMol')
 
     # basic
-    parser.add_argument('--dataset', type=str, default="bbbp", help='dataset name, e.g. bbbp, tox21, ...')
-    parser.add_argument('--dataroot', type=str, default="./data_process/data/", help='data root')
+    parser.add_argument('--dataset', type=str, default="bbbp", help='dataset name, e.g. bbbp, tox21, to pull from bucket')
+    parser.add_argument('--dataroot', type=str, default="./data_process/data/", help='data root in the bucket')
+    parser.add_argument('--bucket_name', type=str, default=None, help='GCP bucket name')
     parser.add_argument('--gpu', default='0', type=str, help='index of GPU to use')
     parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use (default: 1)')
     parser.add_argument('--workers', default=4, type=int, help='number of data loading workers (default: 4)')
@@ -63,7 +62,7 @@ def main(args):
 
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 
-    args.image_folder, args.txt_file = get_datasets(args.dataset, args.dataroot, data_type="processed")
+    args.image_folder, args.txt_file = get_datasets(args.dataset, args.dataroot, data_type="processed", bucket_name=args.bucket_name)
 
     device, device_ids = setup_device(args.ngpu)
 
