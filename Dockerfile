@@ -1,19 +1,56 @@
-# Use a Miniconda3 image as the base
-FROM continuumio/miniconda3
+# ==========================================
+# STAGE 1: The Builder
+# ==========================================
+FROM nvidia/cuda:12.1.1-devel-ubuntu22.04 AS builder
 
-# Set the working directory in the container
-WORKDIR /app
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget bzip2 git ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copy the current directory contents into the container
-COPY . .
+# Install Miniconda
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
+    /bin/bash ~/miniconda.sh -b -p /opt/conda && \
+    rm ~/miniconda.sh
 
-# Create and activate the imagemol conda environment
-RUN conda create -n imagemol python=3.9 -y && \
-    echo "conda activate imagemol" >> ~/.bashrc && \
-    /bin/bash -c "source ~/.bashrc"
+# Create the environment and install everything
+# We use 'conda clean' and '--no-cache-dir' to keep the size down immediately
+ENV PATH=/opt/conda/bin:$PATH
+RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r && \
+    conda create -y -n imagemol python=3.10 && \
+    conda install -y -n imagemol -c conda-forge rdkit && \
+    /opt/conda/envs/imagemol/bin/pip install --no-cache-dir \
+    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 && \
+    /opt/conda/envs/imagemol/bin/pip install --no-cache-dir torch-geometric
 
-# Install dependencies in the imagemol environment
-RUN conda run -n imagemol pip install --no-cache-dir -r requirements.txt
+# Copy and install your requirements
+COPY requirements.txt /tmp/requirements.txt
+RUN /opt/conda/envs/imagemol/bin/pip install --no-cache-dir -r /tmp/requirements.txt
 
-# Set the default command to start a bash shell
+# CRITICAL: Remove conda index caches and package tarballs
+RUN conda clean -afy
+
+# ==========================================
+# STAGE 2: The Final Runtime
+# ==========================================
+FROM nvidia/cuda:12.1.1-runtime-ubuntu22.04
+
+# Only install the bare essentials for the OS to run
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libxrender1 libxext6 && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy the entire conda environment from the builder stage
+COPY --from=builder /opt/conda /opt/conda
+
+
+# Set environment paths
+ENV PATH=/opt/conda/envs/imagemol/bin:/opt/conda/bin:$PATH
+
+WORKDIR /workspace
+
+# 4. Copy over application files
+COPY . /workspace
+
 CMD ["/bin/bash"]
