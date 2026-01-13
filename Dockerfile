@@ -17,12 +17,13 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86
 # We use 'conda clean' and '--no-cache-dir' to keep the size down immediately
 ENV PATH=/opt/conda/bin:$PATH
 RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
-    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r && \
-    conda create -y -n imagemol python=3.10 && \
-    conda install -y -n imagemol -c conda-forge rdkit && \
-    /opt/conda/envs/imagemol/bin/pip install --no-cache-dir \
-    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 && \
-    /opt/conda/envs/imagemol/bin/pip install --no-cache-dir torch-geometric
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+RUN conda create -y -n imagemol python=3.10 && \
+    conda install -y -n imagemol -c conda-forge rdkit
+RUN /opt/conda/envs/imagemol/bin/pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121 && \
+    /opt/conda/envs/imagemol/bin/pip install --no-build-isolation torch-cluster torch-scatter torch-sparse torch-spline-conv -f https://data.pyg.org/whl/torch-2.9.1+cpu.html && \
+    conda clean -afy
+
 
 # Copy and install your requirements
 COPY requirements.txt /tmp/requirements.txt
