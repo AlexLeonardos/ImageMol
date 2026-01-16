@@ -22,6 +22,7 @@ RUN conda create -y -n imagemol python=3.10 && \
     conda install -y -n imagemol -c conda-forge rdkit
 RUN /opt/conda/envs/imagemol/bin/pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121 && \
     /opt/conda/envs/imagemol/bin/pip install --no-build-isolation torch-cluster torch-scatter torch-sparse torch-spline-conv -f https://data.pyg.org/whl/torch-2.9.1+cpu.html && \
+    /opt/conda/envs/imagemol/bin/pip install google-cloud-storage && \
     conda clean -afy
 
 
@@ -54,4 +55,5 @@ WORKDIR /workspace
 # 4. Copy over application files
 COPY . /workspace
 
-CMD ["/bin/bash"]
+# If this container is run on a custom job instead of a workbench, automate the running process:
+ENTRYPOINT ["python", "finetune.py"]
