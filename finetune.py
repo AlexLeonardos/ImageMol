@@ -60,11 +60,16 @@ def main(args):
     if not os.path.exists(args.log_dir):
         os.makedirs(args.log_dir)
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
+    if torch.cuda.is_available():
+        os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 
     args.image_folder, args.txt_file = get_datasets(args.dataset, args.dataroot, data_type="processed", bucket_name=args.bucket_name)
 
-    device, device_ids = setup_device(args.ngpu)
+    if torch.cuda.is_available():
+        device, device_ids = setup_device(args.ngpu)
+    else:
+        device = torch.device('cpu')
+        device_ids = []
 
     # fix random seeds
     fix_train_random_seed(args.runseed)
@@ -164,7 +169,8 @@ def main(args):
 
     print(model)
     print("params: {}".format(cal_torch_model_params(model)))
-    model = model.cuda()
+    if torch.cuda.is_available():
+        model = model.cuda()
     if len(device_ids) > 1:
         model = torch.nn.DataParallel(model, device_ids=device_ids)
 
