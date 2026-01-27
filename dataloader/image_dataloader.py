@@ -33,6 +33,10 @@ class ImageDataset(Dataset):
 
     def get_image(self, index):
         filename = self.filenames[index]
+        if os.path.isdir(filename):
+            print(f"Warning: {filename} is a directory, skipping this entry.")
+            # Optionally, you could raise an error or return a blank image instead
+            raise ValueError(f"Attempted to open a directory as an image: {filename}")
         img = Image.open(filename).convert('RGB')
         return self._image_transformer(img)
 
@@ -87,8 +91,13 @@ def get_datasets(dataset, dataroot, data_type="raw", bucket_name=None):
         # Download image folder
         blobs = bucket.list_blobs(prefix=f"{dataset}/{data_type}/224/")
         for blob in blobs:
+            # Skip directory blobs (names ending with '/')
+            if blob.name.endswith('/'):
+                print(f"Skipping directory blob: {blob.name}")
+                continue
             local_path = os.path.join(dataroot, blob.name)
             os.makedirs(os.path.dirname(local_path), exist_ok=True)
+            print(f"Downloading {blob.name} to {local_path}")
             blob.download_to_filename(local_path)
 
         # Download txt file
