@@ -1,3 +1,5 @@
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
 import os
 import numpy as np
 import pandas as pd
@@ -6,6 +8,7 @@ from rdkit import Chem
 from rdkit.Chem import Draw
 from torch.utils.data import Dataset
 from google.cloud import storage
+from google.cloud.storage import transfer_manager
 
 
 class ImageDataset(Dataset):
@@ -88,17 +91,33 @@ def get_datasets(dataset, dataroot, data_type="raw", bucket_name=None):
         os.makedirs(image_folder, exist_ok=True)
         os.makedirs(os.path.dirname(txt_file), exist_ok=True)
 
+        # make the prefix for blobs
+        prefix=f"{dataset}/{data_type}/224/"
+
         # Download image folder
-        blobs = bucket.list_blobs(prefix=f"{dataset}/{data_type}/224/")
-        for blob in blobs:
-            # Skip directory blobs (names ending with '/')
-            if blob.name.endswith('/'):
-                print(f"Skipping directory blob: {blob.name}")
-                continue
-            local_path = os.path.join(dataroot, blob.name)
-            os.makedirs(os.path.dirname(local_path), exist_ok=True)
-            print(f"Downloading {blob.name} to {local_path}")
-            blob.download_to_filename(local_path)
+        blobs = bucket.list_blobs(prefix=prefix)
+        blob_names = [blob.name for blob in blobs if not blob.name.endswith('/')]
+
+        print(f"Parallel downloading {len(blob_names)} images to {dataroot}...")
+
+        # set the proper destination directory
+        destination_directory = os.path.join(dataroot, f"{dataset}/{data_type}/224/")
+
+        results = transfer_manager.download_many_to_path(
+            bucket,
+            blob_names,
+            destination_directory=dataroot,
+            max_workers=20,
+            create_directories=True
+        )
+
+
+        # old sequential download code
+        # for blob in blobs:
+        #     local_path = os.path.join(dataroot, blob.name)
+        #     os.makedirs(os.path.dirname(local_path), exist_ok=True)
+        #     print(f"Downloading {blob.name} to {local_path}")
+        #     blob.download_to_filename(local_path)
 
         # Download txt file
         txt_blob = bucket.blob(f"{dataset}/{data_type}/{dataset}_processed_ac.csv")
