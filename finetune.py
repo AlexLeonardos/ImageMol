@@ -227,8 +227,19 @@ def main(args):
         valid_result = val_results[eval_metric.upper()]
         test_result = test_results[eval_metric.upper()]
 
-        print({"epoch": epoch, "patience": early_stop, "Loss": train_loss, 'Train': train_result,
-               'Validation': valid_result, 'Test': test_result})
+        epoch_log = {"epoch": epoch, "patience": early_stop, "Loss": train_loss, 'Train': train_result,
+                    'Validation': valid_result, 'Test': test_result}
+        print(epoch_log)
+
+        # write epoch log to file
+        log_file_path = os.path.join(args.log_dir, "training_log.txt")
+        with open(log_file_path, "a") as f:
+            f.write(str(epoch_log) + "\n")
+        
+        # save the model for the current epoch
+        if args.save_finetune_ckpt == 1:
+            save_finetune_ckpt(model, optimizer, round(train_loss, 4), epoch, args.log_dir, f"epoch_{epoch}",
+                                   lr_scheduler=None, result_dict=results)
 
         if is_left_better_right(train_result, results['highest_train'], standard=valid_select):
             results['highest_train'] = train_result
@@ -241,10 +252,7 @@ def main(args):
             results['highest_valid_desc'] = val_results
             results['final_train_desc'] = train_results
             results['final_test_desc'] = test_results
-
-            if args.save_finetune_ckpt == 1:
-                save_finetune_ckpt(model, optimizer, round(train_loss, 4), epoch, args.log_dir, "valid_best",
-                                   lr_scheduler=None, result_dict=results)
+                
             early_stop = 0
         else:
             early_stop += 1
