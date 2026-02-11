@@ -15,14 +15,14 @@ from utils.public_utils import cal_torch_model_params, setup_device, is_left_bet
 from utils.splitter import split_train_val_test_idx, split_train_val_test_idx_stratified, scaffold_split_train_val_test, \
     random_scaffold_split_train_val_test, scaffold_split_balanced_train_val_test
 
-#TODO: make this read from the bucket rather than local files
 
 def parse_args():
     parser = argparse.ArgumentParser(description='PyTorch Implementation of ImageMol')
 
     # basic
-    parser.add_argument('--dataset', type=str, default="bbbp", help='dataset name, e.g. bbbp, tox21, ...')
-    parser.add_argument('--dataroot', type=str, default="./data_process/data/", help='data root')
+    parser.add_argument('--dataset', type=str, default="bbbp", help='dataset name, e.g. bbbp, tox21, to pull from bucket')
+    parser.add_argument('--dataroot', type=str, default="./data_process/data/", help='data root in the bucket')
+    parser.add_argument('--bucket_name', type=str, default=None, help='GCP bucket name')
     parser.add_argument('--gpu', default='0', type=str, help='index of GPU to use')
     parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use (default: 1)')
     parser.add_argument('--workers', default=4, type=int, help='number of data loading workers (default: 4)')
@@ -60,11 +60,16 @@ def main(args):
     if not os.path.exists(args.log_dir):
         os.makedirs(args.log_dir)
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
+    if torch.cuda.is_available():
+        os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 
-    args.image_folder, args.txt_file = get_datasets(args.dataset, args.dataroot, data_type="processed")
+    args.image_folder, args.txt_file = get_datasets(args.dataset, args.dataroot, data_type="processed", bucket_name=args.bucket_name)
 
-    device, device_ids = setup_device(args.ngpu)
+    if torch.cuda.is_available():
+        device, device_ids = setup_device(args.ngpu)
+    else:
+        device = torch.device('cpu')
+        device_ids = []
 
     # fix random seeds
     fix_train_random_seed(args.runseed)
@@ -164,7 +169,8 @@ def main(args):
 
     print(model)
     print("params: {}".format(cal_torch_model_params(model)))
-    # model = model.cuda()
+    if torch.cuda.is_available():
+        model = model.cuda()
     if len(device_ids) > 1:
         model = torch.nn.DataParallel(model, device_ids=device_ids)
 
@@ -221,8 +227,19 @@ def main(args):
         valid_result = val_results[eval_metric.upper()]
         test_result = test_results[eval_metric.upper()]
 
-        print({"epoch": epoch, "patience": early_stop, "Loss": train_loss, 'Train': train_result,
-               'Validation': valid_result, 'Test': test_result})
+        epoch_log = {"epoch": epoch, "patience": early_stop, "Loss": train_loss, 'Train': train_result,
+                    'Validation': valid_result, 'Test': test_result}
+        print(epoch_log)
+
+        # write epoch log to file
+        log_file_path = os.path.join(args.log_dir, "training_log.txt")
+        with open(log_file_path, "a") as f:
+            f.write(str(epoch_log) + "\n")
+        
+        # save the model for the current epoch
+        if args.save_finetune_ckpt == 1:
+            save_finetune_ckpt(model, optimizer, round(train_loss, 4), epoch, args.log_dir, f"epoch_{epoch}",
+                                   lr_scheduler=None, result_dict=results)
 
         if is_left_better_right(train_result, results['highest_train'], standard=valid_select):
             results['highest_train'] = train_result
@@ -235,10 +252,7 @@ def main(args):
             results['highest_valid_desc'] = val_results
             results['final_train_desc'] = train_results
             results['final_test_desc'] = test_results
-
-            if args.save_finetune_ckpt == 1:
-                save_finetune_ckpt(model, optimizer, round(train_loss, 4), epoch, args.log_dir, "valid_best",
-                                   lr_scheduler=None, result_dict=results)
+                
             early_stop = 0
         else:
             early_stop += 1

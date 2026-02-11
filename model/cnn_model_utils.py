@@ -18,19 +18,19 @@ def get_support_model_names():
 def load_model(modelname="ResNet18", imageSize=224, num_classes=2):
     assert modelname in get_support_model_names()
     if modelname == "ResNet18":
-        model = torchvision.models.resnet18(pretrained=False)
+        model = torchvision.models.resnet18(weights=None)
         model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
     elif modelname == "ResNet34":
-        model = torchvision.models.resnet34(pretrained=False)
+        model = torchvision.models.resnet34(weights=None)
         model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
     elif modelname == "ResNet50":
-        model = torchvision.models.resnet50(pretrained=False)
+        model = torchvision.models.resnet50(weights=None)
         model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
     elif modelname == "ResNet101":
-        model = torchvision.models.resnet101(pretrained=False)
+        model = torchvision.models.resnet101(weights=None)
         model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
     elif modelname == "ResNet152":
-        model = torchvision.models.resnet152(pretrained=False)
+        model = torchvision.models.resnet152(weights=None)
         model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
     else:
         raise Exception("{} is undefined".format(modelname))
