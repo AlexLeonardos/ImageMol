@@ -80,7 +80,7 @@ def main(args):
 
     ##################################### initialize some parameters #####################################
     if args.task_type == "classification":
-        eval_metric = "rocauc"
+        eval_metric = "aupr"
         valid_select = "max"
         min_value = -np.inf
     elif args.task_type == "regression":
@@ -259,6 +259,7 @@ def main(args):
         log_file_path = os.path.join(args.log_dir, "training_log.txt")
         with open(log_file_path, "a") as f:
             f.write(str(epoch_log) + "\n")
+            f.write("train_results:" + str(train_results) + "\n")
 
         # update the results dict
 

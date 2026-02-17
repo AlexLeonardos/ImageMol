@@ -21,7 +21,13 @@ def metric(y_true, y_pred, y_prob, empty=-1):
 
     auc = metrics.roc_auc_score(y_true, y_prob)
     bedroc = bedroc_score(y_true, y_prob, alpha=20.0, empty=empty)
-    return {"ROCAUC": auc, "BEDROC": bedroc}
+    precision_list, recall_list, _ = metrics.precision_recall_curve(y_true, y_prob)
+    aupr = metrics.auc(recall_list, precision_list)
+    matthews = metrics.matthews_corrcoef(y_true, y_pred)
+    f1 = metrics.f1_score(y_true, y_pred)
+
+
+    return {"ROCAUC": auc, "BEDROC": bedroc, "AUPR": aupr, "Matthews": matthews, "F1": f1}
 
 
 def metric_reg(y_true, y_pred):
