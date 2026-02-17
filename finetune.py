@@ -259,11 +259,8 @@ def main(args):
         log_file_path = os.path.join(args.log_dir, "training_log.txt")
         with open(log_file_path, "a") as f:
             f.write(str(epoch_log) + "\n")
-        
-        # save the model for the current epoch
-        if args.save_finetune_ckpt == 1:
-            save_finetune_ckpt(model, optimizer, round(train_loss, 4), epoch, args.log_dir, f"epoch_{epoch}",
-                                   lr_scheduler=None, result_dict=results)
+
+        # update the results dict
 
         if is_left_better_right(train_result, results['highest_train'], standard=valid_select):
             results['highest_train'] = train_result
@@ -282,6 +279,15 @@ def main(args):
             early_stop += 1
             if early_stop > patience:
                 break
+
+        # convert numpy scalars to Python floats
+        for k, v in results.items():
+            if isinstance(v, np.generic):
+                results[k] = float(v)
+        # save the model for the current epoch
+        if args.save_finetune_ckpt == 1:
+            save_finetune_ckpt(model, optimizer, round(train_loss, 4), epoch, args.log_dir, f"epoch_{epoch}",
+                                   lr_scheduler=None, result_dict=results)
 
     print("final results: highest_valid: {:.3f}, final_train: {:.3f}, final_test: {:.3f}"
           .format(results["highest_valid"], results["final_train"], results["final_test"]))
