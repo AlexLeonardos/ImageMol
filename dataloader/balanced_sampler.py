@@ -25,7 +25,7 @@ class BalancedBatchSampler(Sampler):
             neg_batch = neg[i*self.num_per_class:(i+1)*self.num_per_class]
             batch = np.concatenate([pos_batch, neg_batch])
             np.random.shuffle(batch)
-            yield from batch
+            yield batch.tolist()
 
     def __len__(self):
         min_class_len = min(len(self.pos_indices), len(self.neg_indices))

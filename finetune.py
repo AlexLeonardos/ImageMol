@@ -80,7 +80,7 @@ def main(args):
 
     ##################################### initialize some parameters #####################################
     if args.task_type == "classification":
-        eval_metric = "bedroc"
+        eval_metric = "rocauc"
         valid_select = "max"
         min_value = -np.inf
     elif args.task_type == "regression":
@@ -137,8 +137,7 @@ def main(args):
             sampler = BalancedBatchSampler(labels_train, args.batch)
             train_dataloader = torch.utils.data.DataLoader(
                 train_dataset,
-                batch_size=args.batch,
-                sampler=sampler,
+                batch_sampler=sampler,
                 num_workers=args.workers,
                 pin_memory=True
             )
