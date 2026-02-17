@@ -1,6 +1,8 @@
 from collections import defaultdict
 import numpy as np
+
 from sklearn import metrics
+from model.bedroc import bedroc_score
 
 
 def metric(y_true, y_pred, y_prob, empty=-1):
@@ -18,7 +20,8 @@ def metric(y_true, y_pred, y_prob, empty=-1):
     y_true, y_pred, y_prob = y_true[flag], y_pred[flag], y_prob[flag]
 
     auc = metrics.roc_auc_score(y_true, y_prob)
-    return {"ROCAUC": auc}
+    bedroc = bedroc_score(y_true, y_prob, alpha=20.0, empty=empty)
+    return {"ROCAUC": auc, "BEDROC": bedroc}
 
 
 def metric_reg(y_true, y_pred):
@@ -70,9 +73,15 @@ def metric_multitask(y_true, y_pred, y_prob, num_tasks, empty=-1):
         if result_list_dict_each_task[i] is None:
             continue
         for key in result_list_dict_each_task[i].keys():
-            if key == "fpr" or key == "tpr" or key == "precision_list" or key == "recall_list":
+            if key in ["fpr", "tpr", "precision_list", "recall_list"]:
                 continue
             mean_performance[key] += result_list_dict_each_task[i][key] / cur_num_tasks
+
+    # Add mean BEDROC if present
+    if any(r is not None and "BEDROC" in r for r in result_list_dict_each_task):
+        mean_performance["mean_BEDROC"] = np.mean([
+            r["BEDROC"] for r in result_list_dict_each_task if r is not None and r["BEDROC"] is not None
+        ])
 
     mean_performance["result_list_dict_each_task"] = result_list_dict_each_task
 

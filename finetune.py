@@ -9,6 +9,7 @@ import torch.optim
 import torch.utils.data
 import torchvision.transforms as transforms
 from dataloader.image_dataloader import ImageDataset, load_filenames_and_labels_multitask, get_datasets
+from dataloader.balanced_sampler import BalancedBatchSampler
 from model.cnn_model_utils import load_model, train_one_epoch_multitask, evaluate_on_multitask, save_finetune_ckpt
 from model.train_utils import fix_train_random_seed, load_smiles
 from utils.public_utils import cal_torch_model_params, setup_device, is_left_better_right
@@ -79,7 +80,7 @@ def main(args):
 
     ##################################### initialize some parameters #####################################
     if args.task_type == "classification":
-        eval_metric = "rocauc"
+        eval_metric = "bedroc"
         valid_select = "max"
         min_value = -np.inf
     elif args.task_type == "regression":
@@ -128,11 +129,35 @@ def main(args):
     test_dataset = ImageDataset(name_test, labels_test, img_transformer=transforms.Compose(img_transformer_test),
                                 normalize=normalize, args=args)
 
-    train_dataloader = torch.utils.data.DataLoader(train_dataset,
-                                                   batch_size=args.batch,
-                                                   shuffle=True,
-                                                   num_workers=args.workers,
-                                                   pin_memory=True)
+    # Use BalancedBatchSampler for binary classification to ensure equal positives and negatives per batch
+    if args.task_type == "classification":
+        # Only use for binary classification
+        unique_labels = np.unique(labels_train[labels_train != -1])
+        if len(unique_labels) == 2:
+            sampler = BalancedBatchSampler(labels_train, args.batch)
+            train_dataloader = torch.utils.data.DataLoader(
+                train_dataset,
+                batch_size=args.batch,
+                sampler=sampler,
+                num_workers=args.workers,
+                pin_memory=True
+            )
+        else:
+            train_dataloader = torch.utils.data.DataLoader(
+                train_dataset,
+                batch_size=args.batch,
+                shuffle=True,
+                num_workers=args.workers,
+                pin_memory=True
+            )
+    else:
+        train_dataloader = torch.utils.data.DataLoader(
+            train_dataset,
+            batch_size=args.batch,
+            shuffle=True,
+            num_workers=args.workers,
+            pin_memory=True
+        )
     val_dataloader = torch.utils.data.DataLoader(val_dataset,
                                                  batch_size=args.batch,
                                                  shuffle=False,
