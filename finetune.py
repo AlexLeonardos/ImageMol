@@ -251,8 +251,8 @@ def main(args):
         valid_result = val_results[eval_metric.upper()]
         test_result = test_results[eval_metric.upper()]
 
-        epoch_log = {"epoch": epoch, "patience": early_stop, "Loss": train_loss, 'Train': train_result,
-                    'Validation': valid_result, 'Test': test_result}
+        epoch_log = {"epoch": epoch, "patience": early_stop, "Loss": train_loss, 'Train AUPR': train_result,
+                    'Validation AUPR': valid_result, 'Test AUPR': test_result}
         print(epoch_log)
 
         # write epoch log to file

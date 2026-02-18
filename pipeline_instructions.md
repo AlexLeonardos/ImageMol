@@ -21,7 +21,7 @@ Alexander Leonardos
 
 4. Use `finetuned_csv_generator.py` to generate the csv that ImageMol will use for the finetuning process.
 
-    `usage: finetuned_csv_generator.py [-h] --datapath DATAPATH --outpath OUTPATH [--gcp_bucket] --cols COLS [COLS ...][--small]`
+    `usage: finetuned_csv_generator.py [-h] --datapath DATAPATH --outpath OUTPATH [--gcp_bucket] --cols COLS [COLS ...] [--small] [--name NAME]`
 
 ## Docker Image:
 1. Clone my [ImageMol Fork](https://github.com/AlexLeonardos/ImageMol).
@@ -112,4 +112,5 @@ Alexander Leonardos
 
 2. Run `inference.py` to test the performance of the finetuned model(s) on a different test set (parquet file).
 
-    `python model/inference.py -h usage: inference.py [-h] --datapath DATAPATH --outpath OUTPATH --ckpt CKPT [--small]`
+    `usage: inference.py [-h] --datapath DATAPATH --outpath OUTPATH --ckpt CKPT [--small] [--threshold THRESHOLD] [--topkprecision TOPKPRECISION] [--batch_size BATCH_SIZE]`
+    
