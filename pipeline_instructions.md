@@ -93,6 +93,10 @@ Alexander Leonardos
     `--epochs`
     
     `20`
+
+    `--batch-sampler-ratio`
+
+    `0.5`
     
     d. Can do hyperparameter tuning.
 

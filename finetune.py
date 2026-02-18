@@ -42,6 +42,7 @@ def parse_args():
     parser.add_argument('--epochs', type=int, default=100, help='number of total epochs to run (default: 100)')
     parser.add_argument('--start_epoch', default=0, type=int, help='manual epoch number (useful on restarts) (default: 0)')
     parser.add_argument('--batch', default=128, type=int, help='mini-batch size (default: 128)')
+    parser.add_argument('--batch-sampler-ratio', default=0.5, type=float, help='portion of negatives in each batch when using balanced sampler (default: 0.5)')
     parser.add_argument('--resume', default='None', type=str, metavar='PATH', help='path to checkpoint (default: None)')
     parser.add_argument('--resume_key', default="state_dict", type=str, help='key of checkpoint')
     parser.add_argument('--imageSize', type=int, default=224, help='the height / width of the input image to network')
@@ -134,7 +135,7 @@ def main(args):
         # Only use for binary classification
         unique_labels = np.unique(labels_train[labels_train != -1])
         if len(unique_labels) == 2:
-            sampler = BalancedBatchSampler(labels_train, args.batch)
+            sampler = BalancedBatchSampler(labels_train, args.batch, args.batch_sampler_ratio)
             train_dataloader = torch.utils.data.DataLoader(
                 train_dataset,
                 batch_sampler=sampler,
